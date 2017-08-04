@@ -58,6 +58,17 @@ var contract = (function(module) {
             return i.indexed === indexed;
           });
 
+          if (indexed) {
+            inputs = inputs.map(function (input) {
+              // Index array types (bytes or string) are logged as Keccak-256 hashes, not their actual values.
+              if (input.type == "string" || input.type == "bytes") {
+                return Object.assign({}, input, {type: "bytes32"});
+              } else {
+                return input;
+              }
+            });
+          }
+
           var partial = {
             inputs: inputs,
             name: fullABI.name,
@@ -79,12 +90,17 @@ var contract = (function(module) {
 
         copy.args = logABI.inputs.reduce(function (acc, current) {
           var val = indexedParams[current.name];
+          var name = current.name;
+
+          if (current.indexed && (current.type == "string" || current.type == "bytes")) {
+            name = name+"(sha3)";
+          }
 
           if (val === undefined) {
             val = notIndexedParams[current.name];
           }
 
-          acc[current.name] = val;
+          acc[name] = val;
           return acc;
         }, {});
 
